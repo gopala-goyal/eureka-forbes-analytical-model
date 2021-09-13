@@ -48,12 +48,11 @@ df_eureka_clean <- data.frame(df_eureka)
 cols <-  as.data.frame(sapply(df_eureka_clean, class))
 cols
 #Remove unwanted columns
-df_eureka_clean <- df_eureka_clean[,-"client_id"]
+df_eureka_clean <- df_eureka_clean[,-c(6,12,30)]
 
 #Change the data into binomial classficiation by changing the values >1 to 1
 df_eureka_clean$converted_in_7days <-
   as.numeric(ifelse(df_eureka_clean$converted_in_7days >= 1, 1, 0))
-df_eureka_clean$date<-as.Date(df_eureka_clean$date)
 
 #Splitting the source medium column on '/' and then trimming the left and right spaces
 df_eureka_clean$sourceMedium<-sub(".*/", "", df_eureka_clean$sourceMedium)
@@ -131,7 +130,7 @@ dim(df_eureka_clean)
 table(df_eureka_clean$converted_in_7days)
 
 #Balance the data using the ROSE library using oversampling. We have kept the N as 1412994 as it is the double of 0s in our dataset and after oversampling, the values of 1s and 0s would become the same
-df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,method="over",N=1412994)$data
+df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,method="over",N=1000000)$data
 table(df_clean_eureka_os$converted_in_7days)
 summary(df_clean_eureka_os)
 
@@ -141,10 +140,46 @@ summary(df_clean_eureka_os)
 
 ############################################################################
 
+#Split the dataset into testing and training sets
 set.seed(2) #set a random number generation seed to ensure that the split is the same everytime
 inTrain <- createDataPartition(y = df_clean_eureka_os$converted_in_7days,
                                p = 0.8, list = FALSE)
 training <- df_clean_eureka_os[ inTrain,]
 testing <- df_clean_eureka_os[ -inTrain,]
 
+#Run Decision tree model on training dataset
 fit <- rpart(converted_in_7days~., data = training, method = 'class')
+
+#Predict using testing dataset & measure
+accuracy_tune <- function(fit) {
+  predict_unseen <- predict(fit, testing, type = 'class')
+  table_mat <- table(testing$survived, predict_unseen)
+  accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+  accuracy_Test
+}
+
+accuracy_tune(fit)
+
+#Run HyperParameter Tuning
+control <- rpart.control(minsplit = 4,
+                         minbucket = round(5 / 3),
+                         maxdepth = 3,
+                         cp = 0)
+tune_fit <- rpart(survived~., data = training, method = 'class', control = control)
+accuracy_tune(tune_fit)
+
+#Run Random model on training dataset
+
+fit_random_forest <- randomForest(converted_in_7days~., data = training,ntree=3,nodesize=10)
+
+predict_rf= predict(fit_random_forest, newdata=testing)
+
+predict_rf = as.data.frame(predict_rf)
+colnames(predict_rf) <- c("converted_in_7day")
+
+predict_rf  <- as.matrix(predict_rf )
+table_mat_rf <- table(testing$converted_in_7days,predict_rf) 
+accuracy_mat_rf <- sum(diag(table_mat_rf))/sum(table_mat_rf)
+
+accuracy_mat_rf
+
