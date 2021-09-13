@@ -3,7 +3,10 @@ library(tidyverse)
 library(dplyr)
 library(caret)
 library(reshape2)
-library(DMwR2)
+library(ROSE)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
 # Load data
 df_eureka <-
   read.csv(
@@ -30,7 +33,7 @@ c = correlation[correlation>0.5]
 #This data is MNAR and would need to be handled in a way that there is no bias created for the data that is missing
 
 #Count missing values per feature
-lapply(df_eureja, function(x)
+lapply(df_eureka, function(x)
   sum(is.na(x)))
 #Missingness has a pattern:
 #Missing columns are all hist: $bounces_hist, $help_me_buy_evt_count_hist, $pageviews_hist, $paid_hist, $phone_clicks_evt_count_hist, $sessionDuration_hist, $sessions_hist, $visited_air_purifier_page_hist, $visited_checkout_page_hist, $visited_contactus_hist, $visited_customer_service_amc_login_hist, $visited_customer_service_request_login_hist, $visited_demo_page_hist, $visited_offer_page_hist, $visited_security_solutions_page_hist, $visited_storelocator_hist, $visited_vacuum_cleaner_page_hist, $visited_water_purifier_page_hist
@@ -43,7 +46,7 @@ lapply(df_eureja, function(x)
 ############################################################################
 df_eureka_clean <- data.frame(df_eureka)
 cols <-  as.data.frame(sapply(df_eureka_clean, class))
-
+cols
 #Remove unwanted columns
 df_eureka_clean <- df_eureka_clean[,-"client_id"]
 
@@ -119,12 +122,29 @@ dim(df_eureka_clean)
 
 ############################################################################
 
-#Feature Engineering & Balancing
+#Balancing
 
 ############################################################################
 
+#Check the dimentions of the dataframe
+dim(df_eureka_clean)
 table(df_eureka_clean$converted_in_7days)
-data_balance<-SMOTE(converted_in_7days~.,data=df_eureka_clean,perc.over=200,perc.under=200)
 
-table(data_balance$converted_in_7days)
+#Balance the data using the ROSE library using oversampling. We have kept the N as 1412994 as it is the double of 0s in our dataset and after oversampling, the values of 1s and 0s would become the same
+df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,method="over",N=1412994)$data
+table(df_clean_eureka_os$converted_in_7days)
+summary(df_clean_eureka_os)
 
+############################################################################
+
+#Modelling - Random Forest and Decision Trees
+
+############################################################################
+
+set.seed(2) #set a random number generation seed to ensure that the split is the same everytime
+inTrain <- createDataPartition(y = df_clean_eureka_os$converted_in_7days,
+                               p = 0.8, list = FALSE)
+training <- df_clean_eureka_os[ inTrain,]
+testing <- df_clean_eureka_os[ -inTrain,]
+
+fit <- rpart(converted_in_7days~., data = training, method = 'class')
