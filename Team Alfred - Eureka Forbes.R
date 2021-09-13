@@ -151,13 +151,10 @@ testing <- df_clean_eureka_os[ -inTrain,]
 fit <- rpart(converted_in_7days~., data = training, method = 'class')
 
 #Predict using testing dataset & measure
-accuracy_tune <- function(fit) {
-  predict_unseen <- predict(fit, testing, type = 'class')
-  table_mat <- table(testing$survived, predict_unseen)
-  accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
-  accuracy_Test
-}
-
+predict_unseen <- predict(fit, testing, type = 'class')
+table_mat <- table(testing$converted_in_7days, predict_unseen)
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+accuracy_Test
 accuracy_tune(fit)
 
 #Run HyperParameter Tuning
@@ -165,8 +162,11 @@ control <- rpart.control(minsplit = 4,
                          minbucket = round(5 / 3),
                          maxdepth = 3,
                          cp = 0)
-tune_fit <- rpart(survived~., data = training, method = 'class', control = control)
-accuracy_tune(tune_fit)
+tune_fit <- rpart(converted_in_7days~., data = training, method = 'class', control = control)
+predict_unseen_tune <- predict(tune_fit, testing, type = 'class')
+table_mat_tune <- table(testing$converted_in_7days, predict_unseen_tune)
+accuracy_Test_tune <- sum(diag(table_mat_tune)) / sum(table_mat_tune)
+accuracy_Test_tune
 
 #Run Random model on training dataset
 
