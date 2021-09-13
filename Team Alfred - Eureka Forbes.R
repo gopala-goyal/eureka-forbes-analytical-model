@@ -157,7 +157,7 @@ accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
 accuracy_Test
 accuracy_tune(fit)
 
-#Run HyperParameter Tuning
+#Run HyperParameter Tuning - These configs did not work and reduced the accuracy from 0.74367 to 0.73235 - need to change them
 control <- rpart.control(minsplit = 4,
                          minbucket = round(5 / 3),
                          maxdepth = 3,
@@ -169,14 +169,15 @@ accuracy_Test_tune <- sum(diag(table_mat_tune)) / sum(table_mat_tune)
 accuracy_Test_tune
 
 #Run Random model on training dataset
-
 fit_random_forest <- randomForest(converted_in_7days~., data = training,ntree=3,nodesize=10)
 
+#Run prediction on the testing dataset
 predict_rf= predict(fit_random_forest, newdata=testing)
 
 predict_rf = as.data.frame(predict_rf)
 colnames(predict_rf) <- c("converted_in_7day")
 
+#Run measures and create a confusion matrix for the predictions
 predict_rf  <- as.matrix(predict_rf )
 table_mat_rf <- table(testing$converted_in_7days,predict_rf) 
 accuracy_mat_rf <- sum(diag(table_mat_rf))/sum(table_mat_rf)
