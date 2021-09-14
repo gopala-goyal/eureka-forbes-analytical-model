@@ -130,7 +130,8 @@ dim(df_eureka_clean)
 table(df_eureka_clean$converted_in_7days)
 
 #Balance the data using the ROSE library using oversampling. We have kept the N as 1412994 as it is the double of 0s in our dataset and after oversampling, the values of 1s and 0s would become the same
-df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,method="over",N=1000000)$data
+df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,p=0.5, seed=1, 
+                                method="over")$data
 table(df_clean_eureka_os$converted_in_7days)
 summary(df_clean_eureka_os)
 
@@ -155,11 +156,10 @@ predict_unseen <- predict(fit, testing, type = 'class')
 table_mat <- table(testing$converted_in_7days, predict_unseen)
 accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
 accuracy_Test
-accuracy_tune(fit)
 
 #Run HyperParameter Tuning - These configs did not work and reduced the accuracy from 0.74367 to 0.73235 - need to change them
 control <- rpart.control(minsplit = 4,
-                         minbucket = round(5 / 3),
+                         minbucket =3,
                          maxdepth = 3,
                          cp = 0)
 tune_fit <- rpart(converted_in_7days~., data = training, method = 'class', control = control)
