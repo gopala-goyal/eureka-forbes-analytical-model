@@ -130,8 +130,9 @@ dim(df_eureka_clean)
 table(df_eureka_clean$converted_in_7days)
 
 #Balance the data using the ROSE library using oversampling. We have kept the N as 1412994 as it is the double of 0s in our dataset and after oversampling, the values of 1s and 0s would become the same
-df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,p=0.5, seed=1, 
-                                method="over")$data
+df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,p=0.5, seed=1, method="over")$data
+#df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,p=0.5, seed=1, method="over")$data
+#df_clean_eureka_os<-ovun.sample(converted_in_7days~.,data=df_eureka_clean,N = 9000, method="under")$data
 table(df_clean_eureka_os$converted_in_7days)
 summary(df_clean_eureka_os)
 
@@ -160,8 +161,8 @@ accuracy_Test
 #Run HyperParameter Tuning - These configs did not work and reduced the accuracy from 0.74367 to 0.73235 - need to change them
 control <- rpart.control(minsplit = 4,
                          minbucket =3,
-                         maxdepth = 3,
-                         cp = 0)
+                         maxdepth = 6,
+                         cp = -1)
 tune_fit <- rpart(converted_in_7days~., data = training, method = 'class', control = control)
 predict_unseen_tune <- predict(tune_fit, testing, type = 'class')
 table_mat_tune <- table(testing$converted_in_7days, predict_unseen_tune)
@@ -173,7 +174,7 @@ fit_random_forest <- randomForest(converted_in_7days~., data = training,ntree=3,
 
 #Run prediction on the testing dataset
 predict_rf= predict(fit_random_forest, newdata=testing)
-
+fit
 predict_rf = as.data.frame(predict_rf)
 colnames(predict_rf) <- c("converted_in_7day")
 
